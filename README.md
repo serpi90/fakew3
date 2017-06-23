@@ -11,7 +11,8 @@ This program attempts to read the command line to execute from a configuration f
 The configuration file **fakew3.txt** only has the command line to execute, using the full path to the game (and passing the required `-window` argument). Example:
 
 ```
-"C:\Program Files (x86)\Warcraft III\Frozen Throne.exe" -window```
+"C:\Program Files (x86)\Warcraft III\Frozen Throne.exe" -window
+```
 
 Please remember to wrap the path (but not the `-window` argument) with double quotes `"`, as shown in the example.
 
