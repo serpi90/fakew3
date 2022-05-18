@@ -1,6 +1,9 @@
 #include <windows.h>
 
 #define COMPILE_MULTIMON_STUBS
+
+
+
 #include <multimon.h>
 
 #include <vector>
@@ -9,7 +12,9 @@
 #include <iostream>
 #include <locale>
 
-struct res{
+#include <cstdlib>
+
+struct res {
     int x;
     int y;
 
@@ -48,7 +53,7 @@ std::string toLower(const std::string& str) {
     static std::locale loc;
     std::string result = "";
 
-    for (size_t i=0; i < str.length(); i++)
+    for (size_t i = 0; i < str.length(); i++)
         result += std::tolower(str[i], loc);
 
     return result;
@@ -63,7 +68,12 @@ void fitWindowToMonitor(HWND hWnd) {
 
     GetWindowRect(hWnd, &rc);
 
-    if (config.resolution == (res){-1, -1}) {
+    res re;
+    re.x = -1;
+    re.y = -1;
+
+
+    if (config.resolution == re) {
         hMonitor = MonitorFromWindow(hWnd, MONITOR_DEFAULTTONULL);
         if (hMonitor) {
             mi.cbSize = sizeof(mi);
@@ -100,7 +110,11 @@ void setUpGameWindow() {
     if (config.makeBorderless)
         setBorderlessWindowStyle(hWnd);
 
-    if (config.makeBorderless || config.resolution != (res){-1, -1})
+    res re;
+    re.x = -1;
+    re.y = -1;
+
+    if (config.makeBorderless || config.resolution != re)
         fitWindowToMonitor(hWnd);
 }
 
@@ -110,7 +124,7 @@ int launchGame() {
     startupInfo.cb = sizeof(startupInfo);
     std::string commandLine = config.location + ' ' + config.arguments;
 
-    if(CreateProcess(NULL, commandLine.data(), NULL, NULL, FALSE, 0, NULL, NULL, &startupInfo, &processInformation)) {
+    if (CreateProcess(NULL, commandLine.data(), NULL, NULL, FALSE, 0, NULL, NULL, &startupInfo, &processInformation)) {
         setUpGameWindow();
 
         // GameRanger binds itself to the process, therefore we must not exit until the game exits
@@ -119,7 +133,8 @@ int launchGame() {
         CloseHandle(processInformation.hThread);
 
         return EXIT_SUCCESS;
-    } else {
+    }
+    else {
         return EXIT_FAILURE;
     }
 }
@@ -152,49 +167,49 @@ identifiers str2identifier(const std::string& str) {
 
 void parseValue(const identifiers identifier, const std::string& value) {
     switch (identifier) {
-        case identifiers::location:
-            config.location = value;
-            break;
+    case identifiers::location:
+        config.location = value;
+        break;
 
-        case identifiers::windowed:
-            if (toLower(value) == "true")
-                config.arguments += " -window ";
-            break;
+    case identifiers::windowed:
+        if (toLower(value) == "true")
+            config.arguments += " -window ";
+        break;
 
-        case identifiers::borderless:
-            config.makeBorderless = toLower(value) == "true";
-            break;
+    case identifiers::borderless:
+        config.makeBorderless = toLower(value) == "true";
+        break;
 
-        case identifiers::resolution: {
-            if (toLower(value) == "auto") {
-                config.resolution = {-1, -1};
+    case identifiers::resolution: {
+        if (toLower(value) == "auto") {
+            config.resolution = { -1, -1 };
+            return;
+        }
+
+        size_t index = value.find('x');
+        std::string number;
+        if (index != std::string::npos) {
+            try {
+                config.resolution.x = std::atoi(value.substr(0, index).c_str());
+                config.resolution.y = std::atoi(value.substr(index + 1).c_str());
                 return;
             }
+            catch (...) {}
+        }
+        std::cout << "The format of the resultion has to be \"<number>x<number>\"\n";
+    } break;
 
-            size_t index = value.find('x');
-            std::string number;
-            if (index != std::string::npos) {
-                try {
-                    config.resolution.x = std::stoi(value.substr(0, index));
-                    config.resolution.y = std::stoi(value.substr(index + 1));
-                    return;
-                }
-                catch (...) { }
-            }
-            std::cout << "The format of the resultion has to be \"<number>x<number>\"\n";
-        } break;
+    case identifiers::arguments:
+        config.arguments += value;
+        break;
 
-        case identifiers::arguments:
-            config.arguments += value;
-            break;
-
-        default:
-            std::cout << "Unknown identifier type\n";
+    default:
+        std::cout << "Unknown identifier type\n";
     }
 }
 
 void parseConfig(const std::vector<char>& str) {
-    config = {"", "", false, {-1, -1} };
+    config = { "", "", false, {-1, -1} };
 
     if (str.empty()) {
         config.location = "C:\\Games\\Warcraft III 1.26\\realWar3.exe";
@@ -216,43 +231,43 @@ void parseConfig(const std::vector<char>& str) {
         }
 
         switch (state) {
-            case parse_state::identifier:
-                if (str[i] == '=') {
-                    state = parse_state::value;
-                    currentIdentifer = str2identifier(literal);
-                    literal = "";
+        case parse_state::identifier:
+            if (str[i] == '=') {
+                state = parse_state::value;
+                currentIdentifer = str2identifier(literal);
+                literal = "";
 
-                    continue;
-                }
-                if (!isspace(str[i]))
-                    literal += str[i];
-                break;
-
-            case parse_state::value:
-                if (!isspace(str[i]))
-                    if (str[i] == '"') {
-                        state = parse_state::string_value;
-                        continue;
-                    }
-                    literal += str[i];
-                break;
-
-            case parse_state::string_value:
-                if (str[i] == '"') {
-                    state = parse_state::skipping;
-                    continue;
-                }
-                literal += str[i];
-                break;
-
-            default:
                 continue;
+            }
+            if (!isspace(str[i]))
+                literal += str[i];
+            break;
+
+        case parse_state::value:
+            if (!isspace(str[i]))
+                if (str[i] == '"') {
+                    state = parse_state::string_value;
+                    continue;
+                }
+            literal += str[i];
+            break;
+
+        case parse_state::string_value:
+            if (str[i] == '"') {
+                state = parse_state::skipping;
+                continue;
+            }
+            literal += str[i];
+            break;
+
+        default:
+            continue;
         }
 
     }
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[]) {
     std::vector<char> configStr;
     std::filesystem::path configPath = getExecutablePath();
 
@@ -263,7 +278,7 @@ int main(int argc, char *argv[]) {
         configStr = std::vector<char>(
             (std::istreambuf_iterator<char>(configFile)),
             std::istreambuf_iterator<char>()
-        );
+            );
     }
 
     parseConfig(configStr);
